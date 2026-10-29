@@ -1,34 +1,3 @@
-<!--
-==============================================================================
-PROJECT NAME: Cookvoid (Web & Mobile App)
-DESCRIPTION: Minimalist pantry-first recipe engine & meal builder.
-CURRENT VERSION: 1.0.0 (Production MVP)
-AUTHOR / OWNER: Aditya Singh
-==============================================================================
-
-AI HANDOFF & CONTINUITY PROTOCOL:
-If you are an AI assistant or developer reading this file from a GitHub repository:
-1. OVERVIEW: Cookvoid is a zero-dependency, single-file HTML/CSS/JS application 
-   designed to run seamlessly on GitHub Pages.
-2. ARCHITECTURE:
-   - UI: HTML5 + Tailwind CSS (via CDN) with modern dark/light mode aesthetics.
-   - DATA ENGINE: Vanilla JavaScript (ES6+). Custom recipes persist in `localStorage`
-     under the key `cookvoid_custom_recipes`.
-   - FILTERS: Active ingredient tags (`selectedIngredients`), max prep time, and equipment.
-3. CURRENT FEATURES:
-   - Dynamic pantry tag toggles + custom ingredient input.
-   - Flexible match engine (Strict vs. Flexible mode).
-   - Real-time serving size scaler (adjusts ingredients & macros dynamically).
-   - Built-in recipe creation modal with custom recipe persistence.
-4. ROADMAP & NEXT STEPS TO BUILD:
-   - Step 1: Add a "Save Favorite Recipes" feature using `localStorage`.
-   - Step 2: Add export/import JSON functionality so users can backup/sync their pantry.
-   - Step 3: Convert into a Progressive Web App (PWA) with `manifest.json` & Service Workers 
-     so it can be installed natively on iOS & Android phones.
-
-==============================================================================
--->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,22 +5,14 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cookvoid - Cook With What You Have</title>
   
-  <!-- Tailwind CSS CDN for modern responsive UI -->
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <style>
-    /* Custom Scrollbar & Smooth Transitions */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #475569; }
-    
-    .glass-card {
-      background: rgba(30, 41, 59, 0.7);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-  </style>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased pb-12">
 
@@ -64,7 +25,7 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
         </div>
         <div>
           <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            Cookvoid <span class="text-xs font-normal text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-full border border-orange-500/20">v1.0</span>
+            Cookvoid <span class="text-xs font-normal text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-full border border-orange-500/20">v1.1</span>
           </h1>
           <p class="text-xs text-slate-400">Turn your empty fridge into instant meals.</p>
         </div>
@@ -89,7 +50,6 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
           <p class="text-xs text-slate-400">Tap to select or type what you currently have in your kitchen.</p>
         </div>
         
-        <!-- Quick Add Custom Tag -->
         <div class="flex items-center gap-2">
           <input 
             type="text" 
@@ -104,9 +64,8 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
         </div>
       </div>
 
-      <!-- Ingredient Pills Grid -->
       <div id="pantryContainer" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
-        <!-- JS dynamically populates ingredient buttons here -->
+        <!-- JS populates ingredient buttons here -->
       </div>
     </section>
 
@@ -116,7 +75,7 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
         <span class="text-slate-400 font-medium">Match Mode:</span>
         <label class="inline-flex items-center gap-1.5 cursor-pointer text-slate-300">
           <input type="radio" name="matchMode" value="flexible" checked onchange="renderRecipes()" class="accent-orange-500" />
-          Flexible (70%+ match)
+          Flexible (50%+ match)
         </label>
         <label class="inline-flex items-center gap-1.5 cursor-pointer text-slate-300">
           <input type="radio" name="matchMode" value="strict" onchange="renderRecipes()" class="accent-orange-500" />
@@ -125,7 +84,7 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
       </div>
 
       <div class="flex items-center justify-between md:justify-end gap-4">
-        <span id="resultsCount" class="text-xs font-semibold text-orange-400">Searching recipes...</span>
+        <span id="resultsCount" class="text-xs font-semibold text-orange-400">Loading recipes...</span>
         <button onclick="clearPantry()" class="text-xs text-slate-400 hover:text-white underline transition">
           Reset Selection
         </button>
@@ -135,7 +94,7 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
     <!-- RECIPES GRID -->
     <section>
       <div id="recipeGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- JS dynamically populates recipe cards here -->
+        <!-- JS populates recipe cards here -->
       </div>
     </section>
   </main>
@@ -148,7 +107,6 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
       <h3 id="modalTitle" class="text-xl font-bold text-white mb-1"></h3>
       <div id="modalMeta" class="text-xs text-orange-400 mb-6 flex items-center gap-3"></div>
 
-      <!-- Portion Adjuster -->
       <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between mb-6">
         <span class="text-xs text-slate-300 font-medium">Adjust Servings:</span>
         <div class="flex items-center gap-3">
@@ -217,101 +175,33 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
     </div>
   </div>
 
-  <!-- EMBEDDED JAVASCRIPT LOGIC -->
+  <!-- APPLICATION LOGIC -->
   <script>
-    // CORE RECIPE DATABASE
-    const defaultRecipes = [
-      {
-        id: "rec-001",
-        title: "Masala Egg Scramble (Bhurji)",
-        prepTimeMinutes: 5,
-        cookTimeMinutes: 10,
-        difficulty: "Easy",
-        tags: ["High-Protein", "Quick"],
-        ingredients: ["eggs", "onion", "tomato", "butter", "green chili"],
-        instructions: [
-          "Finely chop the onion, tomato, and green chili.",
-          "Melt butter in a skillet over medium heat and sauté onions until translucent.",
-          "Add tomatoes and green chili; cook for 2 minutes until soft.",
-          "Whisk eggs in a bowl with a pinch of salt and pour into the skillet.",
-          "Scramble gently on low heat until cooked through."
-        ]
-      },
-      {
-        id: "rec-002",
-        title: "Garlic Butter Fried Rice",
-        prepTimeMinutes: 5,
-        cookTimeMinutes: 10,
-        difficulty: "Easy",
-        tags: ["Quick", "Budget"],
-        ingredients: ["rice", "garlic", "butter", "soy sauce", "black pepper"],
-        instructions: [
-          "Mince the garlic cloves finely.",
-          "Melt butter in a pan over medium heat and sauté garlic for 1–2 minutes until golden brown.",
-          "Add cooked rice, breaking up any clumps.",
-          "Drizzle soy sauce and sprinkle pepper. Toss continuously on high heat for 3 minutes."
-        ]
-      },
-      {
-        id: "rec-003",
-        title: "Classic Paneer / Tofu Stir-Fry",
-        prepTimeMinutes: 10,
-        cookTimeMinutes: 12,
-        difficulty: "Easy",
-        tags: ["High-Protein", "Vegetarian"],
-        ingredients: ["paneer", "bell pepper", "onion", "oil", "soy sauce"],
-        instructions: [
-          "Cube the paneer, onion, and bell pepper into equal bite-sized pieces.",
-          "Heat oil in a skillet and lightly sear paneer cubes for 2 minutes until light brown.",
-          "Stir-fry onions and bell peppers on high heat for 3–4 minutes until crisp-tender.",
-          "Return paneer to the pan, toss with soy sauce, and serve hot."
-        ]
-      },
-      {
-        id: "rec-004",
-        title: "Creamy Peanut Noodles",
-        prepTimeMinutes: 5,
-        cookTimeMinutes: 8,
-        difficulty: "Easy",
-        tags: ["Dorm-Friendly", "Quick"],
-        ingredients: ["instant noodles", "peanut butter", "soy sauce", "chili flakes"],
-        instructions: [
-          "Boil noodles in water according to packet instructions and drain.",
-          "Whisk peanut butter, soy sauce, chili flakes, and 2 tbsp hot water until smooth.",
-          "Toss the hot drained noodles into the peanut sauce until well coated."
-        ]
-      },
-      {
-        id: "rec-005",
-        title: "Microwave Mug Omelette",
-        prepTimeMinutes: 2,
-        cookTimeMinutes: 2,
-        difficulty: "Easy",
-        tags: ["Dorm-Friendly", "Instant"],
-        ingredients: ["eggs", "spinach", "cheese", "milk"],
-        instructions: [
-          "Coat a microwave-safe mug lightly with butter or cooking spray.",
-          "Crack eggs into the mug, add milk, salt, pepper, and whisk thoroughly.",
-          "Fold in chopped spinach and shredded cheese.",
-          "Microwave on HIGH for 60–90 seconds until fluffed and cooked."
-        ]
-      }
-    ];
-
-    // STATE MANAGEMENT
+    let externalRecipes = [];
     let selectedIngredients = [];
     let customIngredientsList = [];
     let activeRecipe = null;
     let currentServingMultiplier = 1;
 
-    // Retrieve user-added recipes from LocalStorage
+    async function init() {
+      try {
+        const response = await fetch('recipes.json');
+        externalRecipes = await response.json();
+      } catch (err) {
+        console.error("Could not load external recipes.json, using fallback.", err);
+        externalRecipes = [];
+      }
+      renderPantry();
+      renderRecipes();
+    }
+
     function getStoredRecipes() {
       const stored = localStorage.getItem('cookvoid_custom_recipes');
       return stored ? JSON.parse(stored) : [];
     }
 
     function getAllRecipes() {
-      return [...defaultRecipes, ...getStoredRecipes()];
+      return [...externalRecipes, ...getStoredRecipes()];
     }
 
     function getAllAvailableIngredients() {
@@ -320,13 +210,6 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
       return Array.from(combined).sort();
     }
 
-    // INITIALIZATION
-    function init() {
-      renderPantry();
-      renderRecipes();
-    }
-
-    // PANTRY UI RENDER
     function renderPantry() {
       const container = document.getElementById('pantryContainer');
       const all = getAllAvailableIngredients();
@@ -377,7 +260,6 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
       renderRecipes();
     }
 
-    // RECIPE MATCH ENGINE & CARD RENDER
     function renderRecipes() {
       const grid = document.getElementById('recipeGrid');
       const countLabel = document.getElementById('resultsCount');
@@ -387,13 +269,10 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
 
       const filtered = allRecipes.filter(recipe => {
         if (selectedIngredients.length === 0) return true;
-
         const matches = recipe.ingredients.filter(ing => selectedIngredients.includes(ing));
-        
         if (matchMode === 'strict') {
           return matches.length === recipe.ingredients.length;
         } else {
-          // Flexible mode: matches if 50%+ of ingredients are available
           return (matches.length / recipe.ingredients.length) >= 0.5;
         }
       });
@@ -452,7 +331,6 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
       }).join('');
     }
 
-    // COOKING MODAL & PORTION SCALER
     function openModal(id) {
       activeRecipe = getAllRecipes().find(r => r.id === id);
       if (!activeRecipe) return;
@@ -503,7 +381,6 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
       document.getElementById('recipeModal').classList.remove('flex');
     }
 
-    // CREATE CUSTOM RECIPE
     function openCreateModal() {
       document.getElementById('createModal').classList.remove('hidden');
       document.getElementById('createModal').classList.add('flex');
@@ -551,7 +428,6 @@ If you are an AI assistant or developer reading this file from a GitHub reposito
       renderRecipes();
     }
 
-    // START APPLICATION
     init();
   </script>
 </body>
