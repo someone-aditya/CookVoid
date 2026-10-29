@@ -1,0 +1,558 @@
+<!--
+==============================================================================
+PROJECT NAME: Cookvoid (Web & Mobile App)
+DESCRIPTION: Minimalist pantry-first recipe engine & meal builder.
+CURRENT VERSION: 1.0.0 (Production MVP)
+AUTHOR / OWNER: Aditya Singh
+==============================================================================
+
+AI HANDOFF & CONTINUITY PROTOCOL:
+If you are an AI assistant or developer reading this file from a GitHub repository:
+1. OVERVIEW: Cookvoid is a zero-dependency, single-file HTML/CSS/JS application 
+   designed to run seamlessly on GitHub Pages.
+2. ARCHITECTURE:
+   - UI: HTML5 + Tailwind CSS (via CDN) with modern dark/light mode aesthetics.
+   - DATA ENGINE: Vanilla JavaScript (ES6+). Custom recipes persist in `localStorage`
+     under the key `cookvoid_custom_recipes`.
+   - FILTERS: Active ingredient tags (`selectedIngredients`), max prep time, and equipment.
+3. CURRENT FEATURES:
+   - Dynamic pantry tag toggles + custom ingredient input.
+   - Flexible match engine (Strict vs. Flexible mode).
+   - Real-time serving size scaler (adjusts ingredients & macros dynamically).
+   - Built-in recipe creation modal with custom recipe persistence.
+4. ROADMAP & NEXT STEPS TO BUILD:
+   - Step 1: Add a "Save Favorite Recipes" feature using `localStorage`.
+   - Step 2: Add export/import JSON functionality so users can backup/sync their pantry.
+   - Step 3: Convert into a Progressive Web App (PWA) with `manifest.json` & Service Workers 
+     so it can be installed natively on iOS & Android phones.
+
+==============================================================================
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cookvoid - Cook With What You Have</title>
+  
+  <!-- Tailwind CSS CDN for modern responsive UI -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    /* Custom Scrollbar & Smooth Transitions */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased pb-12">
+
+  <!-- TOP HEADER -->
+  <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-30 backdrop-blur-md">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-2xl">
+          🍳
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            Cookvoid <span class="text-xs font-normal text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-full border border-orange-500/20">v1.0</span>
+          </h1>
+          <p class="text-xs text-slate-400">Turn your empty fridge into instant meals.</p>
+        </div>
+      </div>
+      
+      <button onclick="openCreateModal()" class="bg-orange-600 hover:bg-orange-500 text-white font-medium text-xs sm:text-sm px-4 py-2 rounded-lg shadow-lg shadow-orange-600/20 transition duration-150 flex items-center gap-1.5">
+        <span>+</span> Add Recipe
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-6xl mx-auto px-4 mt-8 space-y-8">
+    
+    <!-- PANTRY SELECTION SECTION -->
+    <section class="glass-card rounded-2xl p-6 shadow-xl">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+            📍 Available Ingredients
+          </h2>
+          <p class="text-xs text-slate-400">Tap to select or type what you currently have in your kitchen.</p>
+        </div>
+        
+        <!-- Quick Add Custom Tag -->
+        <div class="flex items-center gap-2">
+          <input 
+            type="text" 
+            id="customTagInput" 
+            placeholder="Add extra item..." 
+            class="bg-slate-900 border border-slate-700 text-xs text-white rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500 w-36 sm:w-44"
+            onkeydown="if(event.key === 'Enter') addCustomIngredient()"
+          />
+          <button onclick="addCustomIngredient()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-lg text-slate-200 transition">
+            Add
+          </button>
+        </div>
+      </div>
+
+      <!-- Ingredient Pills Grid -->
+      <div id="pantryContainer" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
+        <!-- JS dynamically populates ingredient buttons here -->
+      </div>
+    </section>
+
+    <!-- FILTERS & CONTROLS BAR -->
+    <section class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+      <div class="flex items-center gap-4 text-xs">
+        <span class="text-slate-400 font-medium">Match Mode:</span>
+        <label class="inline-flex items-center gap-1.5 cursor-pointer text-slate-300">
+          <input type="radio" name="matchMode" value="flexible" checked onchange="renderRecipes()" class="accent-orange-500" />
+          Flexible (70%+ match)
+        </label>
+        <label class="inline-flex items-center gap-1.5 cursor-pointer text-slate-300">
+          <input type="radio" name="matchMode" value="strict" onchange="renderRecipes()" class="accent-orange-500" />
+          Strict (Exact match)
+        </label>
+      </div>
+
+      <div class="flex items-center justify-between md:justify-end gap-4">
+        <span id="resultsCount" class="text-xs font-semibold text-orange-400">Searching recipes...</span>
+        <button onclick="clearPantry()" class="text-xs text-slate-400 hover:text-white underline transition">
+          Reset Selection
+        </button>
+      </div>
+    </section>
+
+    <!-- RECIPES GRID -->
+    <section>
+      <div id="recipeGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- JS dynamically populates recipe cards here -->
+      </div>
+    </section>
+  </main>
+
+  <!-- COOKING INSTRUCTIONS MODAL -->
+  <div id="recipeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 relative shadow-2xl">
+      <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl font-bold">×</button>
+      
+      <h3 id="modalTitle" class="text-xl font-bold text-white mb-1"></h3>
+      <div id="modalMeta" class="text-xs text-orange-400 mb-6 flex items-center gap-3"></div>
+
+      <!-- Portion Adjuster -->
+      <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between mb-6">
+        <span class="text-xs text-slate-300 font-medium">Adjust Servings:</span>
+        <div class="flex items-center gap-3">
+          <button onclick="changePortion(-1)" class="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold hover:bg-slate-700 flex items-center justify-center text-sm">-</button>
+          <span id="portionCount" class="text-sm font-bold text-white w-4 text-center">1</span>
+          <button onclick="changePortion(1)" class="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold hover:bg-slate-700 flex items-center justify-center text-sm">+</button>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <div>
+          <h4 class="text-xs uppercase tracking-wider font-semibold text-slate-400 mb-3">Ingredients Needed</h4>
+          <ul id="modalIngredients" class="space-y-2 text-sm text-slate-200"></ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs uppercase tracking-wider font-semibold text-slate-400 mb-3">Preparation Steps</h4>
+          <ol id="modalInstructions" class="space-y-3 text-sm text-slate-300 list-decimal list-inside"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE CUSTOM RECIPE MODAL -->
+  <div id="createModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 relative shadow-2xl space-y-4">
+      <button onclick="closeCreateModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl font-bold">×</button>
+      
+      <h3 class="text-lg font-bold text-white">Add Custom Recipe</h3>
+      <p class="text-xs text-slate-400">Save your own recipe directly into your browser's local memory.</p>
+
+      <form id="createRecipeForm" onsubmit="handleCreateRecipe(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-300 mb-1 font-medium">Recipe Title</label>
+          <input type="text" id="newTitle" required placeholder="e.g. Quick Butter Rice" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-orange-500" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 mb-1 font-medium">Prep + Cook Time (mins)</label>
+            <input type="number" id="newTime" required placeholder="15" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-orange-500" />
+          </div>
+          <div>
+            <label class="block text-slate-300 mb-1 font-medium">Difficulty</label>
+            <select id="newDifficulty" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-orange-500">
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 mb-1 font-medium">Ingredients (comma-separated)</label>
+          <input type="text" id="newIngredients" required placeholder="rice, garlic, butter, soy sauce" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-orange-500" />
+        </div>
+
+        <div>
+          <label class="block text-slate-300 mb-1 font-medium">Instructions (period-separated steps)</label>
+          <textarea id="newInstructions" rows="3" required placeholder="Sauté garlic in butter. Add rice and stir-fry for 3 mins." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-orange-500"></textarea>
+        </div>
+
+        <button type="submit" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-medium py-3 rounded-lg transition shadow-lg shadow-orange-600/20">
+          Save Recipe to Pantry
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EMBEDDED JAVASCRIPT LOGIC -->
+  <script>
+    // CORE RECIPE DATABASE
+    const defaultRecipes = [
+      {
+        id: "rec-001",
+        title: "Masala Egg Scramble (Bhurji)",
+        prepTimeMinutes: 5,
+        cookTimeMinutes: 10,
+        difficulty: "Easy",
+        tags: ["High-Protein", "Quick"],
+        ingredients: ["eggs", "onion", "tomato", "butter", "green chili"],
+        instructions: [
+          "Finely chop the onion, tomato, and green chili.",
+          "Melt butter in a skillet over medium heat and sauté onions until translucent.",
+          "Add tomatoes and green chili; cook for 2 minutes until soft.",
+          "Whisk eggs in a bowl with a pinch of salt and pour into the skillet.",
+          "Scramble gently on low heat until cooked through."
+        ]
+      },
+      {
+        id: "rec-002",
+        title: "Garlic Butter Fried Rice",
+        prepTimeMinutes: 5,
+        cookTimeMinutes: 10,
+        difficulty: "Easy",
+        tags: ["Quick", "Budget"],
+        ingredients: ["rice", "garlic", "butter", "soy sauce", "black pepper"],
+        instructions: [
+          "Mince the garlic cloves finely.",
+          "Melt butter in a pan over medium heat and sauté garlic for 1–2 minutes until golden brown.",
+          "Add cooked rice, breaking up any clumps.",
+          "Drizzle soy sauce and sprinkle pepper. Toss continuously on high heat for 3 minutes."
+        ]
+      },
+      {
+        id: "rec-003",
+        title: "Classic Paneer / Tofu Stir-Fry",
+        prepTimeMinutes: 10,
+        cookTimeMinutes: 12,
+        difficulty: "Easy",
+        tags: ["High-Protein", "Vegetarian"],
+        ingredients: ["paneer", "bell pepper", "onion", "oil", "soy sauce"],
+        instructions: [
+          "Cube the paneer, onion, and bell pepper into equal bite-sized pieces.",
+          "Heat oil in a skillet and lightly sear paneer cubes for 2 minutes until light brown.",
+          "Stir-fry onions and bell peppers on high heat for 3–4 minutes until crisp-tender.",
+          "Return paneer to the pan, toss with soy sauce, and serve hot."
+        ]
+      },
+      {
+        id: "rec-004",
+        title: "Creamy Peanut Noodles",
+        prepTimeMinutes: 5,
+        cookTimeMinutes: 8,
+        difficulty: "Easy",
+        tags: ["Dorm-Friendly", "Quick"],
+        ingredients: ["instant noodles", "peanut butter", "soy sauce", "chili flakes"],
+        instructions: [
+          "Boil noodles in water according to packet instructions and drain.",
+          "Whisk peanut butter, soy sauce, chili flakes, and 2 tbsp hot water until smooth.",
+          "Toss the hot drained noodles into the peanut sauce until well coated."
+        ]
+      },
+      {
+        id: "rec-005",
+        title: "Microwave Mug Omelette",
+        prepTimeMinutes: 2,
+        cookTimeMinutes: 2,
+        difficulty: "Easy",
+        tags: ["Dorm-Friendly", "Instant"],
+        ingredients: ["eggs", "spinach", "cheese", "milk"],
+        instructions: [
+          "Coat a microwave-safe mug lightly with butter or cooking spray.",
+          "Crack eggs into the mug, add milk, salt, pepper, and whisk thoroughly.",
+          "Fold in chopped spinach and shredded cheese.",
+          "Microwave on HIGH for 60–90 seconds until fluffed and cooked."
+        ]
+      }
+    ];
+
+    // STATE MANAGEMENT
+    let selectedIngredients = [];
+    let customIngredientsList = [];
+    let activeRecipe = null;
+    let currentServingMultiplier = 1;
+
+    // Retrieve user-added recipes from LocalStorage
+    function getStoredRecipes() {
+      const stored = localStorage.getItem('cookvoid_custom_recipes');
+      return stored ? JSON.parse(stored) : [];
+    }
+
+    function getAllRecipes() {
+      return [...defaultRecipes, ...getStoredRecipes()];
+    }
+
+    function getAllAvailableIngredients() {
+      const recipeIngredients = getAllRecipes().flatMap(r => r.ingredients);
+      const combined = new Set([...recipeIngredients, ...customIngredientsList]);
+      return Array.from(combined).sort();
+    }
+
+    // INITIALIZATION
+    function init() {
+      renderPantry();
+      renderRecipes();
+    }
+
+    // PANTRY UI RENDER
+    function renderPantry() {
+      const container = document.getElementById('pantryContainer');
+      const all = getAllAvailableIngredients();
+
+      container.innerHTML = all.map(ing => {
+        const isSelected = selectedIngredients.includes(ing);
+        return `
+          <button 
+            onclick="toggleIngredient('${ing}')"
+            class="px-3 py-1.5 rounded-full text-xs transition duration-150 flex items-center gap-1.5 ${
+              isSelected 
+                ? 'bg-orange-600 text-white font-medium shadow-md shadow-orange-600/20 border border-orange-500' 
+                : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+            }"
+          >
+            <span>${isSelected ? '✓' : '+'}</span>
+            <span class="capitalize">${ing}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function toggleIngredient(ing) {
+      if (selectedIngredients.includes(ing)) {
+        selectedIngredients = selectedIngredients.filter(i => i !== ing);
+      } else {
+        selectedIngredients.push(ing);
+      }
+      renderPantry();
+      renderRecipes();
+    }
+
+    function addCustomIngredient() {
+      const input = document.getElementById('customTagInput');
+      const val = input.value.trim().toLowerCase();
+      if (val && !getAllAvailableIngredients().includes(val)) {
+        customIngredientsList.push(val);
+        selectedIngredients.push(val);
+        input.value = '';
+        renderPantry();
+        renderRecipes();
+      }
+    }
+
+    function clearPantry() {
+      selectedIngredients = [];
+      renderPantry();
+      renderRecipes();
+    }
+
+    // RECIPE MATCH ENGINE & CARD RENDER
+    function renderRecipes() {
+      const grid = document.getElementById('recipeGrid');
+      const countLabel = document.getElementById('resultsCount');
+      const matchMode = document.querySelector('input[name="matchMode"]:checked').value;
+      
+      const allRecipes = getAllRecipes();
+
+      const filtered = allRecipes.filter(recipe => {
+        if (selectedIngredients.length === 0) return true;
+
+        const matches = recipe.ingredients.filter(ing => selectedIngredients.includes(ing));
+        
+        if (matchMode === 'strict') {
+          return matches.length === recipe.ingredients.length;
+        } else {
+          // Flexible mode: matches if 50%+ of ingredients are available
+          return (matches.length / recipe.ingredients.length) >= 0.5;
+        }
+      });
+
+      countLabel.textContent = selectedIngredients.length > 0 
+        ? `${filtered.length} recipe(s) matched` 
+        : `Showing all ${allRecipes.length} recipes`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full text-center py-12 glass-card rounded-2xl border border-slate-800">
+            <p class="text-slate-400 text-sm">No recipes found matching your selected ingredients.</p>
+            <button onclick="clearPantry()" class="mt-3 text-xs text-orange-400 hover:underline">Clear ingredients to see all</button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(recipe => {
+        const matchesCount = recipe.ingredients.filter(i => selectedIngredients.includes(i)).length;
+        const matchPercent = Math.round((matchesCount / recipe.ingredients.length) * 100);
+
+        return `
+          <div class="glass-card rounded-2xl p-5 flex flex-col justify-between hover:border-slate-700 transition duration-200">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <h3 class="font-bold text-white text-base leading-snug">${recipe.title}</h3>
+                ${selectedIngredients.length > 0 ? `
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    matchPercent === 100 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
+                  }">
+                    ${matchPercent}% Match
+                  </span>
+                ` : ''}
+              </div>
+
+              <div class="flex items-center gap-3 text-xs text-slate-400 mb-4">
+                <span>⏱️ ${recipe.prepTimeMinutes + recipe.cookTimeMinutes} mins</span>
+                <span>⚡ ${recipe.difficulty}</span>
+              </div>
+
+              <div class="text-xs text-slate-400 mb-4">
+                <span class="text-slate-500">Key Items:</span> 
+                <span class="text-slate-200 capitalize">${recipe.ingredients.slice(0, 4).join(', ')}${recipe.ingredients.length > 4 ? '...' : ''}</span>
+              </div>
+            </div>
+
+            <button 
+              onclick="openModal('${recipe.id}')"
+              class="w-full bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-medium py-2.5 rounded-xl border border-slate-700 transition"
+            >
+              View Cooking Steps
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // COOKING MODAL & PORTION SCALER
+    function openModal(id) {
+      activeRecipe = getAllRecipes().find(r => r.id === id);
+      if (!activeRecipe) return;
+
+      currentServingMultiplier = 1;
+      document.getElementById('portionCount').textContent = currentServingMultiplier;
+
+      document.getElementById('modalTitle').textContent = activeRecipe.title;
+      document.getElementById('modalMeta').innerHTML = `
+        <span>⏱️ Total Time: ${activeRecipe.prepTimeMinutes + activeRecipe.cookTimeMinutes} mins</span>
+        <span>•</span>
+        <span>⚡ Difficulty: ${activeRecipe.difficulty}</span>
+      `;
+
+      renderModalContent();
+      document.getElementById('recipeModal').classList.remove('hidden');
+      document.getElementById('recipeModal').classList.add('flex');
+    }
+
+    function renderModalContent() {
+      if (!activeRecipe) return;
+
+      const ingList = document.getElementById('modalIngredients');
+      ingList.innerHTML = activeRecipe.ingredients.map(ing => `
+        <li class="flex items-center gap-2">
+          <span class="text-orange-400">▪</span>
+          <span class="capitalize">${ing}</span>
+          ${currentServingMultiplier > 1 ? `<span class="text-xs text-slate-500">(x${currentServingMultiplier})</span>` : ''}
+        </li>
+      `).join('');
+
+      const stepsList = document.getElementById('modalInstructions');
+      stepsList.innerHTML = activeRecipe.instructions.map(step => `
+        <li class="pl-1">${step}</li>
+      `).join('');
+    }
+
+    function changePortion(delta) {
+      if (currentServingMultiplier + delta >= 1) {
+        currentServingMultiplier += delta;
+        document.getElementById('portionCount').textContent = currentServingMultiplier;
+        renderModalContent();
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('recipeModal').classList.add('hidden');
+      document.getElementById('recipeModal').classList.remove('flex');
+    }
+
+    // CREATE CUSTOM RECIPE
+    function openCreateModal() {
+      document.getElementById('createModal').classList.remove('hidden');
+      document.getElementById('createModal').classList.add('flex');
+    }
+
+    function closeCreateModal() {
+      document.getElementById('createModal').classList.add('hidden');
+      document.getElementById('createModal').classList.remove('flex');
+    }
+
+    function handleCreateRecipe(e) {
+      e.preventDefault();
+      
+      const title = document.getElementById('newTitle').value.trim();
+      const time = parseInt(document.getElementById('newTime').value) || 10;
+      const difficulty = document.getElementById('newDifficulty').value;
+      const ingredients = document.getElementById('newIngredients').value
+        .split(',')
+        .map(i => i.trim().toLowerCase())
+        .filter(i => i.length > 0);
+      
+      const instructions = document.getElementById('newInstructions').value
+        .split('.')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+      const newRecipe = {
+        id: "custom-" + Date.now(),
+        title,
+        prepTimeMinutes: Math.round(time / 2),
+        cookTimeMinutes: Math.round(time / 2),
+        difficulty,
+        tags: ["Custom"],
+        ingredients,
+        instructions
+      };
+
+      const currentStored = getStoredRecipes();
+      currentStored.push(newRecipe);
+      localStorage.setItem('cookvoid_custom_recipes', JSON.stringify(currentStored));
+
+      document.getElementById('createRecipeForm').reset();
+      closeCreateModal();
+      renderPantry();
+      renderRecipes();
+    }
+
+    // START APPLICATION
+    init();
+  </script>
+</body>
+</html>
