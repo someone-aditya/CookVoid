@@ -1,0 +1,77 @@
+[
+  {
+    "id": "rec-001",
+    "title": "Masala Egg Scramble (Bhurji)",
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 10,
+    "difficulty": "Easy",
+    "tags": ["High-Protein", "Quick"],
+    "ingredients": ["eggs", "onion", "tomato", "butter", "green chili"],
+    "instructions": [
+      "Finely chop the onion, tomato, and green chili.",
+      "Melt butter in a skillet over medium heat and sauté onions until translucent.",
+      "Add tomatoes and green chili; cook for 2 minutes until soft.",
+      "Whisk eggs in a bowl with a pinch of salt and pour into the skillet.",
+      "Scramble gently on low heat until cooked through."
+    ]
+  },
+  {
+    "id": "rec-002",
+    "title": "Garlic Butter Fried Rice",
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 10,
+    "difficulty": "Easy",
+    "tags": ["Quick", "Budget"],
+    "ingredients": ["rice", "garlic", "butter", "soy sauce", "black pepper"],
+    "instructions": [
+      "Mince the garlic cloves finely.",
+      "Melt butter in a pan over medium heat and sauté garlic for 1–2 minutes until golden brown.",
+      "Add cooked rice, breaking up any clumps.",
+      "Drizzle soy sauce and sprinkle pepper. Toss continuously on high heat for 3 minutes."
+    ]
+  },
+  {
+    "id": "rec-003",
+    "title": "Classic Paneer / Tofu Stir-Fry",
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 12,
+    "difficulty": "Easy",
+    "tags": ["High-Protein", "Vegetarian"],
+    "ingredients": ["paneer", "bell pepper", "onion", "oil", "soy sauce"],
+    "instructions": [
+      "Cube the paneer, onion, and bell pepper into equal bite-sized pieces.",
+      "Heat oil in a skillet and lightly sear paneer cubes for 2 minutes until light brown.",
+      "Stir-fry onions and bell peppers on high heat for 3–4 minutes until crisp-tender.",
+      "Return paneer to the pan, toss with soy sauce, and serve hot."
+    ]
+  },
+  {
+    "id": "rec-004",
+    "title": "Creamy Peanut Noodles",
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 8,
+    "difficulty": "Easy",
+    "tags": ["Dorm-Friendly", "Quick"],
+    "ingredients": ["instant noodles", "peanut butter", "soy sauce", "chili flakes"],
+    "instructions": [
+      "Boil noodles in water according to packet instructions and drain.",
+      "Whisk peanut butter, soy sauce, chili flakes, and 2 tbsp hot water until smooth.",
+      "Toss the hot drained noodles into the peanut sauce until well coated."
+    ]
+  },
+  {
+    "id": "rec-005",
+    "title": "Microwave Mug Omelette",
+    "prepTimeMinutes": 2,
+    "cookTimeMinutes": 2,
+    "difficulty": "Easy",
+    "tags": ["Dorm-Friendly", "Instant"],
+    "ingredients": ["eggs", "spinach", "cheese", "milk"],
+    "instructions": [
+      "Coat a microwave-safe mug lightly with butter or cooking spray.",
+      "Crack eggs into the mug, add milk, salt, pepper, and whisk thoroughly.",
+      "Fold in chopped spinach and shredded cheese.",
+      "Microwave on HIGH for 60–90 seconds until fluffed and cooked."
+    ]
+  }
+]
